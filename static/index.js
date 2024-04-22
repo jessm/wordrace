@@ -1,10 +1,11 @@
-const el = document.body.appendChild(document.createElement("p"))
-el.textContent = "testinnnnn";
+let words = [];
 
-ws = new WebSocket('ws://localhost:8080/connect')
+console.log('working');
+
+let ws = new WebSocket(`wss://${window.location.href}:8080/connect`)
 ws.onopen = () => {
-    const p = el.appendChild(document.createElement('p'))
-    p.textContent = 'connected';
+  let el = document.getElementById('status');
+  el.textContent = 'connected';
 }
 
 ws.onmessage = (ev) => {

@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
-    <script src="static/index.js" defer></script>
 </head>
 <body>
-    WORD RACERRRR VROOM VROM
+    <h3>WORD RACERRRR VROOM VROM</h3>
+    <button onclick="sendStart()">Start Game</button>
+    <p>connection status: <span id="status">disconnected</span></<p>
+    <br>
     <input placeholder="test" id="input"></input>
     <button onclick="sendMessage()">Send</button>
+    <div id="words"></div>
+    <script src="static/index.js"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+  "sort"
 
 	"golang.org/x/exp/maps"
 )
@@ -47,10 +48,22 @@ type Msg struct {
 	Data interface{} `json:"data"`
 }
 
+type FoundWordInfo struct {
+  Word string
+  Player string
+  Pos int
+}
+
 const WORDS = "citrus,sir,sit,its,cut,suit,cuts,stir,tis,crust,rust,rut,curt,rustic,citrus"
 
 func NewGame() Game {
 	words := strings.Split(WORDS, ",")
+  sort.Slice(words, func(i, j int) bool {
+    if len(words[i]) == len(words[j]) {
+      return words[i] < words[j]
+    }
+    return len(words[i]) < len(words[j])
+  })
 	return Game{
 		players: make(map[string][]string),
 		words:   words[1:],
@@ -59,7 +72,7 @@ func NewGame() Game {
 	}
 }
 
-func (g Game) process(cmd Cmd) Msg {
+func (g Game) Process(cmd Cmd) Msg {
 	everyone := maps.Keys(g.players)
 	sender := []string{cmd.From}
 	switch cmd.Kind {
@@ -85,10 +98,21 @@ func (g Game) process(cmd Cmd) Msg {
 		if !slices.Contains(g.words, word) {
 			return Msg{Err, sender, "Invalid word"}
 		}
-		if slices.Contains(g.players[cmd.From], word) {
+    idx := slices.Index(g.words, word)
+		if idx == -1 {
 			return Msg{Err, sender, "Already found word"}
 		}
-		return Msg{}
+    // update player words
+    g.players[cmd.From] = append(g.players[cmd.From], word)
+		return Msg{
+      FoundWord,
+      everyone,
+      FoundWordInfo{
+        word,
+        cmd.From,
+        idx,
+      },
+    }
 	default:
 		return Msg{Err, sender, fmt.Sprintf("Unknown cmd %s", cmd.Kind)}
 	}

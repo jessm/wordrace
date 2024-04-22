@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
+  "slices"
 	"net/http"
-	"slices"
-	"sort"
-	"strings"
 	"text/template"
 
 	"github.com/gorilla/websocket"
 )
 
 // const WORDS = "citrus,sir,sit,its,cut,suit,cuts,stir,tis,crust,rust,rut,curt,rustic,citrus"
+var g Game
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -19,13 +18,9 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var clients = make(map[*websocket.Conn][]string)
-var broadcast = make(chan Message)
+var clients = make(map[*websocket.Conn]string)
+var broadcast = make(chan Msg)
 
-type Message struct {
-	Name    string `json:"name"`
-	Message string `json:"message"`
-}
 
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("templates/index.html"))
@@ -33,6 +28,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleConnect(w http.ResponseWriter, r *http.Request) {
+  fmt.Println("upgrading")
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println("Upgrade problem:", err)
@@ -40,49 +36,18 @@ func handleConnect(w http.ResponseWriter, r *http.Request) {
 
 	defer c.Close()
 
-	clients[c] = make([]string, 0)
+  for {
+    var msg Cmd
+    err := c.ReadJSON(&msg)
+    if err != nil {
+      fmt.Println(err)
+      delete(clients, c)
+      return
+    }
 
-	words := strings.Split(WORDS, ",")
-	letters := strings.Split(words[0], "")
-	sort.Slice(letters, func(i, j int) bool {
-		return letters[i] < letters[j]
-	})
-
-	for client := range clients {
-		err := client.WriteJSON(Message{
-			Name:    "server",
-			Message: strings.Join(letters, ","),
-		})
-		if err != nil {
-			fmt.Println(err)
-			client.Close()
-			delete(clients, client)
-			return
-		}
-	}
-
-	for {
-		var msg Message
-		err := c.ReadJSON(&msg)
-		if err != nil {
-			fmt.Println(err)
-			delete(clients, c)
-			return
-		}
-
-		fmt.Println(msg)
-
-		if slices.Contains(words, msg.Message) && !slices.Contains(clients[c], msg.Message) {
-			// if slices.Contains(words, msg.Message) {
-			broadcast <- msg
-			clients[c] = append(clients[c], msg.Message)
-		}
-
-		if len(words)-1 == len(clients[c]) {
-			broadcast <- Message{"server", "You Win!"}
-		}
-
-	}
+    broadcast <-g.Process(msg)
+  }
+  
 }
 
 func handleMessage() {
@@ -90,6 +55,9 @@ func handleMessage() {
 		msg := <-broadcast
 		fmt.Println("Sending", msg)
 		for client := range clients {
+      if !slices.Contains(msg.To, clients[client]) {
+        continue
+      }
 			err := client.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
@@ -101,6 +69,8 @@ func handleMessage() {
 }
 
 func main() {
+  g = NewGame()
+  
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/", handleHome)
