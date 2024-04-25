@@ -4,10 +4,14 @@ import (
 	"fmt"
   "slices"
 	"net/http"
-	"text/template"
+  "embed"
+  "io/fs"
 
 	"github.com/gorilla/websocket"
 )
+
+//go:embed static/*
+var content embed.FS
 
 // const WORDS = "citrus,sir,sit,its,cut,suit,cuts,stir,tis,crust,rust,rut,curt,rustic,citrus"
 var g Game
@@ -20,12 +24,6 @@ var upgrader = websocket.Upgrader{
 
 var clients = make(map[*websocket.Conn]string)
 var broadcast = make(chan Msg)
-
-
-func handleHome(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/index.html"))
-	tmpl.Execute(w, "")
-}
 
 func handleConnect(w http.ResponseWriter, r *http.Request) {
   fmt.Println("upgrading")
@@ -70,10 +68,9 @@ func handleMessage() {
 
 func main() {
   g = NewGame()
-  
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.HandleFunc("/", handleHome)
+
+  fs, _ := fs.Sub(content, "static")
+	http.Handle("/", http.FileServer(http.FS(fs)))
 	http.HandleFunc("/connect", handleConnect)
 
 	go handleMessage()

@@ -1,4 +1,4 @@
-run = "go run pkg/main.go pkg/game.go"
+run = "go run main.go game.go"
 
 modules = ["go-1.21:v2-20231201-3b22c78"]
 

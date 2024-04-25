@@ -49,9 +49,9 @@ type Msg struct {
 }
 
 type FoundWordInfo struct {
-  Word string
-  Player string
-  Pos int
+  Word   string `json:"word"`
+  Player string `json:"player"`
+  Pos    int    `json:"pos"`
 }
 
 const WORDS = "citrus,sir,sit,its,cut,suit,cuts,stir,tis,crust,rust,rut,curt,rustic,citrus"
