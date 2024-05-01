@@ -5,14 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
     <script src="index.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        @font-face { font-family: CuteDino; src: url('Cute Dino.otf'); }
+    </style>
 </head>
 <body>
-    <h3>WORD RACERRRR VROOM VROM</h3>
-    <button onclick="sendStart()">Start Game</button>
-    <p>connection status: <span id="status" style="color:red">disconnected</span></<p>
-    <br>
-    <input placeholder="test" id="input"></input>
-    <button onclick="sendMessage()">Send</button>
-    <div id="words"></div>
+    <!-- HEADING STUFF -->
+    <div class="title">🏎️ WORD RACERRRR VROOM VROOM 🏁</div>
+    <table class="scores">
+        <tr>
+            <td class="your-color">Your letters: <span id="yourScore">0</span></td>
+            <td class="their-color">Their letters: <span id="theirScore">0</span></td>
+        </tr>
+    </table>
+    <button class="button" onClick="doReset()"> 🔄 reset</button>
+    <div class="status">status: <span id="status-emoji">🔴</span></div>
+
+    <div class="error-msg" id="serverMessage" hidden>error msg</div>
+
+    <!-- BODY STUFF -->
+
+    <div id="words" class="words"></div>
+
+    <div id="inputWord" class="input-word"></div>
+    <div id="letters" class="letters"></div>
+    <div class="button-row">
+        <div id="clearButton" onclick="clearOnClick()" class="button">✖️ clear</div>
+        <div id="shuffleButton" onclick="shuffleOnClick()" class="button">🔀</div>
+        <div id="enterButton" onclick="doTryWord()" class="button">⬆️ enter</div>
+    </div>
 </body>
 </html>

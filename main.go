@@ -1,11 +1,13 @@
 package main
 
 import (
+	"embed"
 	"fmt"
-  "slices"
+	"io/fs"
 	"net/http"
-  "embed"
-  "io/fs"
+	"os"
+	"slices"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 )
@@ -26,7 +28,7 @@ var clients = make(map[*websocket.Conn]string)
 var broadcast = make(chan Msg)
 
 func handleConnect(w http.ResponseWriter, r *http.Request) {
-  fmt.Println("upgrading")
+	fmt.Println("upgrading")
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println("Upgrade problem:", err)
@@ -34,18 +36,36 @@ func handleConnect(w http.ResponseWriter, r *http.Request) {
 
 	defer c.Close()
 
-  for {
-    var msg Cmd
-    err := c.ReadJSON(&msg)
-    if err != nil {
-      fmt.Println(err)
-      delete(clients, c)
-      return
-    }
+	clients[c] = fmt.Sprintf("user%v", strconv.FormatInt(int64(len(clients)+1), 10))
+	for _, msg := range g.Process(Cmd{Kind: Join, From: clients[c], Data: clients[c]}) {
+		broadcast <- msg
+	}
+	for _, msg := range g.Process(Cmd{Kind: Start, From: clients[c]}) {
+		broadcast <- msg
+	}
+	for {
+		var msg Cmd
+		err := c.ReadJSON(&msg)
+		if err != nil {
+			fmt.Println(err)
+			delete(clients, c)
+			return
+		}
 
-    broadcast <-g.Process(msg)
-  }
-  
+		if msg.Kind == "reset" {
+			for client := range clients {
+				client.Close()
+				delete(clients, client)
+			}
+			g = NewGame()
+			return
+		}
+
+		for _, msg := range g.Process(msg) {
+			broadcast <- msg
+		}
+	}
+
 }
 
 func handleMessage() {
@@ -53,9 +73,9 @@ func handleMessage() {
 		msg := <-broadcast
 		fmt.Println("Sending", msg)
 		for client := range clients {
-      if !slices.Contains(msg.To, clients[client]) {
-        continue
-      }
+			if !slices.Contains(msg.To, clients[client]) {
+				continue
+			}
 			err := client.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
@@ -67,10 +87,14 @@ func handleMessage() {
 }
 
 func main() {
-  g = NewGame()
+	g = NewGame()
 
-  fs, _ := fs.Sub(content, "static")
-	http.Handle("/", http.FileServer(http.FS(fs)))
+	if _, ok := os.LookupEnv("REPL_SLUG"); ok {
+		fs, _ := fs.Sub(content, "static")
+		http.Handle("/", http.FileServer(http.FS(fs)))
+	} else {
+		http.Handle("/", http.FileServer(http.Dir("static")))
+	}
 	http.HandleFunc("/connect", handleConnect)
 
 	go handleMessage()
