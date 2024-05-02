@@ -5,6 +5,9 @@ html, body {
     overflow: hidden;
     background-color: #fff5cf;
     font-family: CuteDino;
+    background-image:  radial-gradient(#8d5f34 1px, transparent 1px), radial-gradient(#8d5f34 1px, #fff5cf 1px);
+    background-size: 20px 20px;
+    background-position: 0 0,10px 10px;
 }
 
 .title {
@@ -41,16 +44,20 @@ html, body {
 }
 
 .your-color {
-    background: #93e18a;
+    background-color: #93e18a;
 }
 
 .their-color {
-    background: #ed8282;
+    background-color: #ed8282;
 }
 
 .scores {
     width: 100%;
     text-align: center;
+}
+
+table {
+    border-collapse: collapse;
 }
 
 .button {
@@ -62,6 +69,18 @@ html, body {
     padding: 0.3rem;
 }
 
+.timer {
+    display: inline-block;
+    right: 0px;
+    left: 0px;
+    text-align: center;
+    position: fixed;
+    padding: 0.8rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 20%;
+}
+
 .status {
     display: inline-block;
     right: 0px;
@@ -70,15 +89,15 @@ html, body {
     background: #edd885;
 }
 
-.error-msg {
+.server-msg {
     position: absolute;
     left: 0;
     right: 0;
     width: 75%;
     height: 20%;
     top: 40%;
-    background-color: #ed8282;
-    border: 0.5rem solid #a65353;
+    background-color: #edd885;
+    border: 0.5rem solid #c97a30;
     border-radius: 1rem;
     margin-left: auto;
     margin-right: auto;
@@ -119,6 +138,10 @@ html, body {
     margin-right: auto;
     left: 0;
     right: 0;
+
+    background-image:  radial-gradient(#edd885 1px, transparent 1px), radial-gradient(#edd885 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: 0 0,10px 10px;
 }
 
 .letter-button {
@@ -166,4 +189,3 @@ html, body {
     display: flex;
     justify-content: space-between;
 }
-

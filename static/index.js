@@ -34,6 +34,7 @@ ws.onmessage = (ev) => {
     'setup': handleSetup,
     'err': handleErr,
     'foundWord': handleFoundWord,
+    'endGame': handleEndGame,
   }
   handleFuncs[msg["kind"]](msg)
 }
@@ -54,6 +55,28 @@ let createLetterEl = (letter = 'A') => {
   return el
 }
 
+let renderScoreBackgrounds = () => {
+  let yourScoreBoxEl = document.getElementById('yourScoreBox')
+  let theirScoreBoxEl = document.getElementById('theirScoreBox')
+  let yourScoreEl = document.getElementById('yourScore')
+  let theirScoreEl = document.getElementById('theirScore')
+  let yourScore = parseInt(yourScoreEl.textContent)
+  let theirScore = parseInt(theirScoreEl.textContent)
+
+  let yourEnd = 100*(yourScore / gState.scoreToBeat)
+  let theirStart = 100 - 100*(theirScore / gState.scoreToBeat)
+
+  yourScoreBoxEl.style.background = `linear-gradient(90deg, #93e18a ${yourEnd}%, transparent ${yourEnd}%)`
+  theirScoreBoxEl.style.background = `linear-gradient(90deg, transparent ${theirStart}%, #ed8282 ${theirStart}%)`
+
+  if (yourScore / gState.scoreToBeat >= 1) {
+    document.getElementById('finishLine').classList.add('your-color')
+  } else if (theirScore / gState.scoreToBeat >= 1) {
+    document.getElementById('finishLine').classList.add('their-color')
+
+  }
+}
+
 ////////////////////////////
 // GAME LOGIC
 ////////////////////////////
@@ -65,6 +88,8 @@ let gState = {
   wordsFound: [],
 
   letterEls: [],
+
+  scoreToBeat: 0,
 }
 
 const handleJoin = (msg) => {
@@ -92,6 +117,7 @@ const handleSetup = (msg) => {
   }
   gState.setup = true
   let wordEl = document.getElementById("words")
+  let totalLetters = 0
   for (let i = 0; i < msg["data"]["counts"].length; i++) {
     let wordLen = msg["data"]["counts"][i]
     let el = document.createElement("div")
@@ -105,7 +131,12 @@ const handleSetup = (msg) => {
     gState.words.push(el)
     gState.wordsFound.push(false)
     wordEl.appendChild(el)
+
+    totalLetters += wordLen
   }
+  gState.scoreToBeat = Math.ceil(totalLetters / 2)
+  renderScoreBackgrounds()
+
 
   let lettersEl = document.getElementById("letters")
   let letters = msg["data"]['letters'].toUpperCase()
@@ -115,6 +146,8 @@ const handleSetup = (msg) => {
     lettersEl.appendChild(letterEl)
     gState.letterEls.push(letterEl)
   }
+
+  document.onkeydown = handleKeyPresses
 }
 
 const doTryWord = () => {
@@ -173,6 +206,19 @@ const handleFoundWord = (msg) => {
   let score = parseInt(scoreEl.textContent)
   score += msg['data']['word'].length
   scoreEl.textContent = score
+
+  renderScoreBackgrounds()
+}
+
+let handleEndGame = (msg) => {
+  let msgEl = document.getElementById('serverMessage')
+  let winner = msg["data"]
+  if (winner == gState.userName) {
+    msgEl.textContent = 'YOU WIN!\nnice racing!'
+  } else {
+    msgEl.textContent = 'YOU LOST!\nbetter luck next time...'
+  }
+  msgEl.style.opacity = 100
 }
 
 ////////////////////////////
@@ -196,7 +242,7 @@ let letterOnClick = (ev) => {
   // --- all the stuff to revert when done with letter
   letterEl.classList.remove('letter-button')
   letterEl.classList.add('empty-letter-button')
-  letterEl.onclick = null
+  letterEl.onclick = () => {}
   // --- end stuff
 
   let inputWordEl = document.getElementById('inputWord')
@@ -228,5 +274,18 @@ let shuffleOnClick = () => {
   lettersEl.innerHTML = ''
   for (let i = 0; i < gState.letterEls.length; i++) {
     lettersEl.appendChild(gState.letterEls[i])
+  }
+}
+
+let handleKeyPresses = (ev) => {
+  if (ev.key.length == 1 && ev.key.match(/[a-z]/i)) {
+    let pos = getLetterPos(ev.key.toUpperCase())
+    if (pos >= 0 && pos <= gState.letterEls.length) {
+      gState.letterEls[pos].onclick({'target': gState.letterEls[pos]})
+    }
+  } else if (ev.key.toLowerCase() == 'enter') {
+    doTryWord()
+  } else if (ev.key.toLowerCase() == 'backspace') {
+    clearOnClick()
   }
 }

@@ -15,14 +15,16 @@
     <div class="title">🏎️ WORD RACERRRR VROOM VROOM 🏁</div>
     <table class="scores">
         <tr>
-            <td class="your-color">Your letters: <span id="yourScore">0</span></td>
-            <td class="their-color">Their letters: <span id="theirScore">0</span></td>
+            <td id="yourScoreBox">Your letters: <span id="yourScore">0</span></td>
+            <td width="3em" id="finishLine">🏁</td>
+            <td id="theirScoreBox">Their letters: <span id="theirScore">0</span></td>
         </tr>
     </table>
     <button class="button" onClick="doReset()"> 🔄 reset</button>
+    <div class="timer" id="timer">0:00</div>
     <div class="status">status: <span id="status-emoji">🔴</span></div>
 
-    <div class="error-msg" id="serverMessage" hidden>error msg</div>
+    <div class="server-msg" id="serverMessage" hidden>error msg</div>
 
     <!-- BODY STUFF -->
 

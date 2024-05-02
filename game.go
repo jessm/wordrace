@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"slices"
 	"sort"
@@ -23,7 +24,8 @@ type Game struct {
 	base    string
 	state   string
 
-	foundWordBuffer []Msg
+	catchupMsgBuf []Msg
+	scoreToBeat   int
 }
 
 const (
@@ -37,6 +39,7 @@ const (
 	Joined    = "joined"
 	Setup     = "setup"
 	FoundWord = "foundWord"
+	EndGame   = "endGame"
 )
 
 type Cmd struct {
@@ -71,6 +74,11 @@ func NewGame() Game {
 		base[i], base[j] = base[j], base[i]
 	})
 	words = words[1:]
+	totalLetters := 0
+	for _, word := range words {
+		totalLetters += len(word)
+	}
+	scoreToBeat := int(math.Ceil(float64(totalLetters) / 2.0))
 	sort.Slice(words, func(i, j int) bool {
 		if len(words[i]) == len(words[j]) {
 			return words[i] < words[j]
@@ -82,6 +90,9 @@ func NewGame() Game {
 		words:   words,
 		base:    strings.Join(base, ""),
 		state:   Lobby,
+
+		catchupMsgBuf: make([]Msg, 0),
+		scoreToBeat:   scoreToBeat,
 	}
 }
 
@@ -91,6 +102,14 @@ func (g *Game) getSetupInfo() SetupInfo {
 		wordCounts[i] = len(g.words[i])
 	}
 	return SetupInfo{Letters: g.base, Counts: wordCounts}
+}
+
+func (g *Game) getScore(player string) int {
+	ret := 0
+	for _, word := range g.players[player] {
+		ret += len(word)
+	}
+	return ret
 }
 
 func (g *Game) Process(cmd Cmd) []Msg {
@@ -106,7 +125,7 @@ func (g *Game) Process(cmd Cmd) []Msg {
 		ret := []Msg{{Joined, maps.Keys(g.players), name}}
 		if g.state == Playing {
 			ret = append(ret, Msg{Setup, sender, g.getSetupInfo()})
-			ret = append(ret, g.foundWordBuffer...)
+			ret = append(ret, g.catchupMsgBuf...)
 		}
 		return ret
 	case Start:
@@ -138,7 +157,10 @@ func (g *Game) Process(cmd Cmd) []Msg {
 				idx,
 			},
 		}}
-		g.foundWordBuffer = append(g.foundWordBuffer, ret[0])
+		if g.getScore(cmd.From) >= g.scoreToBeat {
+			ret = append(ret, Msg{EndGame, everyone, cmd.From})
+		}
+		g.catchupMsgBuf = append(g.catchupMsgBuf, ret...)
 		return ret
 	default:
 		return []Msg{{Err, sender, fmt.Sprintf("Unknown cmd %s", cmd.Kind)}}
